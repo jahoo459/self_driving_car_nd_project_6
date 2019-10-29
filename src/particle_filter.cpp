@@ -79,17 +79,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
       particle.theta += yaw_rate * delta_t + normal_distribution(gen) * std_pos[2];
     }
   }
-  
-  // yaw_rate = std::abs(yaw_rate) < 0.000001 ? 0 : yaw_rate;
-  // const double term = 0.5 * yaw_rate;
-  // const double delta_yaw = yaw_rate * delta_t;
-  // const double coef = yaw_rate != 0 ? (2 * velocity / yaw_rate) * std::sin(0.5 * delta_yaw) : velocity * delta_t;
-  // for (Particle& particle : particles) 
-  // {
-  //   particle.x += coef * std::cos(particle.theta + term) + normal_distribution(gen) * std_pos[0];
-  //   particle.y += coef * std::sin(particle.theta + term) + normal_distribution(gen) * std_pos[1];
-  //   particle.theta += delta_yaw + normal_distribution(gen) * std_pos[2];
-  // }
+
 }
 
 
@@ -143,11 +133,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         //check the distance
         if(dist(lm_x, lm_y, particles[i].x, particles[i].y) <= sensor_range)
         {
-          // cout << "Found landmark in range. Distance is: " << dist(lm_x, lm_y, particles[i].x, particles[i].y) << "\n";
           predictions.push_back(LandmarkObs{lm_id, lm_x, lm_y});
         }
       }
-      // cout << "Found "<< landmarksInRange.size() << " landmarks in range\n";
 
       // Transform observations to MAP coordinate system
       std::vector<LandmarkObs> map_observations;
@@ -160,22 +148,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
         double x_map = cos(particles[i].theta)*observations[k].x - sin(particles[i].theta)*observations[k].y + particles[i].x;
         double y_map = sin(particles[i].theta)*observations[k].x + cos(particles[i].theta)*observations[k].y + particles[i].y;
         map_observations.push_back(LandmarkObs{observations[k].id, x_map, y_map});
-        // cout << "New coordinates: (" << x_map << "," << y_map << ")\n";
       }
       
       // Associate observations and predictions
       dataAssociation(predictions, map_observations);
       particles[i].weight = 1.0;
-
-      // For each observation find the corresponding landmark and update the weight
-      // cout << "I have " << map_observations.size() << " map observations and " << predictions.size() << " predictions \n";
-      // for(int m = 0; m < map_observations.size(); m++){
-      //   cout << "observation " << m << " is (" << map_observations[m].x << "," << map_observations[m].y << ") \n";
-      // }
-      // for(int m = 0; m < predictions.size(); m++){
-      //   cout << "observation " << m << " is (" << predictions[m].x << "," << predictions[m].y << ") \n";
-      // }
-      // return;
 
       for (int k = 0; k < map_observations.size(); k++)
       {
@@ -188,11 +165,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
             prediction_x = predictions[n].x;
             prediction_y = predictions[n].y;
 
-            const double x_exp = std::exp(-pow2(observation_x - prediction_x) * 0.5 / pow2(noise_x));
-            const double y_exp = std::exp(-pow2(observation_y - prediction_y) * 0.5 / pow2(noise_y));
+            const double x_exp = std::exp(-1 * pow(observation_x - prediction_x, 2) * 0.5 / pow(noise_x, 2));
+            const double y_exp = std::exp(-pow(observation_y - prediction_y, 2) * 0.5 / pow(noise_y, 2));
             particles[i].weight *= gaussNorm * x_exp * y_exp;
-            // cout << "Calculated particle weight is " << particles[i].weight << "\n";
-            // std::cout << "obs.x - prd.x= " << observation_x - prediction_x << " obs.y - prd.y= " <<observation_y - prediction_y << "\n";
 
             particles[i].associations.push_back(predictions[n].id);
             particles[i].sense_x.push_back(predictions[n].x);
@@ -218,38 +193,18 @@ void ParticleFilter::resample() {
   std::discrete_distribution<int> randIndexGenerator(weights.begin(), weights.end());
 
   std::vector<Particle> sampledParticles(num_particles);
-  // cout << "Entering for...\n";
+
   for(int i = 0; i < num_particles; i++)
   {
-    // cout << "Creating p\n";
     int tempIndex = randIndexGenerator(gen);
-    // cout << "Genereted number: " << tempIndex << "\n";
-    // cout << "This particle has id: " << particles[tempIndex].id << "\n";
     Particle* p = &particles[tempIndex];
-    // Particle* p = &particles[0];
-    // cout << "Creating new particle\n";
+
     sampledParticles[i] = Particle{p->id, p->x, p->y, p->theta, p->weight, p->associations, p->sense_x, p->sense_y};
 
   }
-  // cout << "Assigning...\n";
-  // particles.clear();
   particles = sampledParticles;
-  // cout << "Resampling done\n";
 }
 
-// void ParticleFilter::SetAssociations(Particle& particle, 
-//                                      const vector<int>& associations, 
-//                                      const vector<double>& sense_x, 
-//                                      const vector<double>& sense_y) {
-//   // particle: the particle to which assign each listed association, 
-//   //   and association's (x,y) world coordinates mapping
-//   // associations: The landmark id that goes along with each listed association
-//   // sense_x: the associations x mapping already converted to world coordinates
-//   // sense_y: the associations y mapping already converted to world coordinates
-//   particle.associations= associations;
-//   particle.sense_x = sense_x;
-//   particle.sense_y = sense_y;
-// }
 
 string ParticleFilter::getAssociations(Particle best) {
   vector<int> v = best.associations;

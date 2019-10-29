@@ -99,7 +99,7 @@ class ParticleFilter {
    * initialized Returns whether particle filter is initialized yet or not.
    */
   const bool initialized() const {
-    return is_initialized;
+    return !particles.empty();
   }
 
   /**
@@ -119,7 +119,7 @@ class ParticleFilter {
   bool is_initialized;
   
   // Vector of weights of all particles
-  std::vector<double> weights; 
+  //std::vector<double> weights; 
 };
 
 #endif  // PARTICLE_FILTER_H_

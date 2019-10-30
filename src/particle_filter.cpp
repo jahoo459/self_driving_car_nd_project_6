@@ -60,26 +60,17 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
 
   std::normal_distribution<double> normal_distribution(0, 1);
 
-  if(yaw_rate < 0.00001)
-  {
-    for (Particle& particle : particles) 
-    {
-      particle.x += velocity * delta_t * std::cos(particle.theta) + normal_distribution(gen) * std_pos[0];
-      particle.y += velocity * delta_t * std::sin(particle.theta) + normal_distribution(gen) * std_pos[1];
-      particle.theta += normal_distribution(gen) * std_pos[2];
-    }
-  }
-  
-  else
-  {
-    for (Particle& particle : particles) 
-    {
-      particle.x += (2 * velocity / yaw_rate) * std::sin(0.5 * yaw_rate * delta_t) * std::cos(particle.theta + 0.5 * yaw_rate) + normal_distribution(gen) * std_pos[0];
-      particle.y += (2 * velocity / yaw_rate) * std::sin(0.5 * yaw_rate * delta_t) * std::sin(particle.theta + 0.5 * yaw_rate) + normal_distribution(gen) * std_pos[1];
-      particle.theta += yaw_rate * delta_t + normal_distribution(gen) * std_pos[2];
-    }
-  }
+  yaw_rate = std::abs(yaw_rate) < 0.00001 ? 0 : yaw_rate;
+  double yaw_scaled = 0.5 * yaw_rate;
+  double d_yaw = yaw_rate * delta_t;
+  double expression = yaw_rate != 0 ? (2 * velocity / yaw_rate) * std::sin(0.5 * d_yaw) : velocity * delta_t;
 
+  for(int i = 0; i < particles.size(); i++)
+  {
+    particles[i].x += expression * std::cos(particles[i].theta + yaw_scaled) + normal_distribution(gen) * std_pos[0];
+    particles[i].y += expression * std::sin(particles[i].theta + yaw_scaled) + normal_distribution(gen) * std_pos[1];
+    particles[i].theta += d_yaw + normal_distribution(gen) * std_pos[3];
+  }
 }
 
 
